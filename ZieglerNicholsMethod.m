@@ -1,6 +1,7 @@
 close all
 clear all
 clc
+
 %% Transfer Function Definition
 %This is just an example
 D = 0.5;
@@ -19,13 +20,33 @@ D = 0;
 
 s = tf('s');
 TF = tf(ss(A,B,C,D));
-%% Frecuency and Period
-Ku = 1/192; %Ultimate Gain (you should know this beforehand)
 
+%% Ku Ultimate Gain (WORK IN PROGRESS)
+%Still need to make sure that the Ku used is the correct one (as just
+%finding Ku this way might not be the only option)
+syms K
+CE = cell2mat(TF.Denominator) + K*cell2mat(TF.Numerator);%Characteristic Equation
+
+nonzero = find(cell2mat(TF.Numerator)~=0);
+Kvalues = zeros(1,length(CE));
+
+for i = nonzero
+        Kvalues(i) = solve(CE(i),K);
+end
+
+Ku = Kvalues(Kvalues> 0 & min(Kvalues));%The selection of this Ku value still needs to be checked
+
+%% Frecuency and Period
 System = feedback(Ku*TF,1);
 Poles = abs(pole(System));
 Frecuency = Poles(1);
 Pu = 2*pi/Frecuency;
+
+%% For a P Controller
+Kp = 0.5*Ku;
+P = Kp;
+System = feedback(P*TF,1);
+
 %% For a P Controller
 Kp = 0.5*Ku;
 P = Kp;
@@ -33,6 +54,7 @@ System = feedback(P*TF,1);
 
 step(48*System,'g')
 hold on
+
 %% For a PI Controller
 Kp = 0.45*Ku;
 Ti = Pu/1.2;
@@ -41,6 +63,7 @@ PI = (Kp + Ki/s);
 System = feedback(PI*TF,1);
 
 step(48*System,'r')
+
 %% For a PID Controller
 Kp = 0.6*Ku;
 Ti = Pu/2;
